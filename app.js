@@ -1,247 +1,211 @@
-// ======================================================
-// WHAT ARE YOU BUILDING?
-// ======================================================
-//
-// You are building a simple "Posts App"
-//
-// The user can:
-// - See posts
-// - Add a post
-// - Edit a post
-// - Delete a post
-// - Search posts
-//
-// ------------------------------------------------------
-// VERY IMPORTANT (READ THIS CAREFULLY)
-// ------------------------------------------------------
-// We are using a FAKE API.
-//
-// That means:
-// - The server DOES NOT save your changes
-// - If you refresh, all changes are gone
-//
-// So YOU must:
-// - Store data in your own state
-// - Update it manually
-// - Re-render the UI
-//
-// RULE (MOST IMPORTANT):
-// After ANY action:
-// 1. Update STATE
-// 2. Re-render UI
-// ------------------------------------------------------
-
-
-
-// ======================================================
-// HOW THE APP IS BUILT
-// ======================================================
-//
-// The app is split into 4 parts:
-//
-// 1. STATE  → stores data
-// 2. API    → sends requests
-// 3. UI     → displays data
-// 4. APP    → connects everything
-//
-// Think of it like:
-//
-// STATE = data
-// API   = communication
-// UI    = display
-// APP   = control flow
-//
-// ------------------------------------------------------
-
-
-
-// ======================================================
 // PART 1: STATE (CLOSURE)
-// ======================================================
-//
-// This stores your data privately.
-//
-// You must:
-// - Store posts in an array
-// - Add new post
-// - Update post
-// - Delete post
-// - Track if editing
-//
-// IMPORTANT:
-// Only STATE controls the data.
-// UI must NOT store data.
+const State = (function () {
+  let posts = [];
+  let isEditing = false;
+  let editingId = null;
+
+  return {
+    getPosts: () => posts,
+
+    setPosts: (newPosts) => {
+      posts = newPosts;
+    },
+
+    addPost: (post) => {
+      posts = [post, ...posts];
+    },
+
+    updatePost: (updatedPost) => {
+      posts = posts.map(p => p.id === updatedPost.id ? updatedPost : p);
+    },
+
+    deletePost: (id) => {
+      posts = posts.filter(p => p.id !== id);
+    },
+
+    setEditing: (id) => {
+      isEditing = true;
+      editingId = id;
+    },
+
+    cancelEditing: () => {
+      isEditing = false;
+      editingId = null;
+    },
+
+    getEditing: () => ({
+      isEditing,
+      editingId
+    })
+  };
+})();
 
 
+// PART 2: API (FAKE API)
+const API = {
+  BASE_URL: "https://jsonplaceholder.typicode.com/posts",
 
-// ======================================================
-// PART 2: API
-// ======================================================
-//
-// This ONLY sends requests.
-//
-// You must:
-// - GET posts
-// - POST new post
-// - PUT update post
-// - DELETE post
-//
-// IMPORTANT:
-// API does NOT update your UI
-// API does NOT store real data
-//
-// YOU must update STATE yourself.
+  async getPosts() {
+    const res = await fetch(this.BASE_URL + "?_limit=10");
+    return res.json();
+  },
 
+  async createPost(post) {
+    const res = await fetch(this.BASE_URL, {
+      method: "POST",
+      body: JSON.stringify(post),
+      headers: { "Content-type": "application/json" }
+    });
+    return res.json();
+  },
 
+  async updatePost(post) {
+    const res = await fetch(`${this.BASE_URL}/${post.id}`, {
+      method: "PUT",
+      body: JSON.stringify(post),
+      headers: { "Content-type": "application/json" }
+    });
+    return res.json();
+  },
 
-// ======================================================
-// PART 3: UI
-// ======================================================
-//
-// This ONLY controls what user sees.
-//
-// You must:
-// - Show posts
-// - Create Edit button
-// - Create Delete button
-// - Fill form when editing
-//
-// IMPORTANT:
-// UI should NOT store posts
-// It ONLY displays what STATE gives it
-
-
-
-// ======================================================
-// PART 4: APP (MAIN LOGIC)
-// ======================================================
-//
-// This connects everything.
-//
-// You must:
-// - Load posts when app starts
-// - Call API
-// - Update STATE
-// - Re-render UI
-//
-// This is where everything comes together
-
-
-
-// ======================================================
-// EXACT STEPS YOU MUST FOLLOW
-// ======================================================
-//
-// STEP 1: LOAD POSTS
-// - Call API to get posts
-// - Save them in STATE
-// - Render them
-//
-// --------------------------------------
-//
-// STEP 2: SHOW POSTS
-// - Loop through posts
-// - Show title and body
-// - Add Edit button
-// - Add Delete button
-//
-// --------------------------------------
-//
-// STEP 3: CREATE POST
-// - Call API (POST)
-// - Add post to STATE
-// - Re-render UI
-//
-// --------------------------------------
-//
-// STEP 4: EDIT POST
-// - Fill form with post data
-// - Set editing mode = true
-//
-// --------------------------------------
-//
-// STEP 5: UPDATE POST
-// - Call API (PUT)
-// - Update post in STATE
-// - Re-render UI
-//
-// --------------------------------------
-//
-// STEP 6: DELETE POST
-// - Call API (DELETE)
-// - Remove post from STATE
-// - Re-render UI
-//
-// --------------------------------------
-//
-// STEP 7: SEARCH
-// - Filter posts from STATE
-// - Re-render UI
-//
-// --------------------------------------
-
-
-
-// ======================================================
-// MOST COMMON MISTAKES (AVOID THESE)
-// ======================================================
-//
-// - Expecting API to save data
-// - Not updating STATE after API call
-// - Not re-rendering UI
-// - Storing data inside UI
-//
-// ------------------------------------------------------
-
-
-
-// ======================================================
-// FINAL RULE (REMEMBER THIS)
-// ======================================================
-//
-// STATE controls everything
-//
-// If UI is wrong → STATE is wrong
-//
-// ALWAYS:
-// change STATE → then render UI
-//
-// ======================================================
-
-const App = (function () {
-  const container = document.getElementById("postsContainer");
-  const loadingMessage = document.getElementById("loadingMessage");
-  const errorMessage = document.getElementById("errorMessage");
-
-  let posts = []; 
-
-  async function fetchPosts() {
-    try {
-      const res = await fetch("https://jsonplaceholder.typicode.com/posts?_limit=10");
-      posts = await res.json();
-
-      loadingMessage.style.display = "none";
-
-      renderPosts();
-    } catch (error) {
-      loadingMessage.style.display = "none";
-      errorMessage.classList.remove("hidden");
-    }
+  async deletePost(id) {
+    await fetch(`${this.BASE_URL}/${id}`, {
+      method: "DELETE"
+    });
   }
+};
 
-  function renderPosts() {
+
+// PART 3: UI
+const UI = {
+  renderPosts(posts) {
+    const container = document.getElementById("postsContainer");
+
     container.innerHTML = posts.map(post => `
       <div class="post">
         <h3>${post.title}</h3>
         <p>${post.body}</p>
+        <button onclick="App.handleEdit(${post.id})">Edit</button>
+        <button onclick="App.handleDelete(${post.id})">Delete</button>
       </div>
     `).join("");
+  },
+
+  fillForm(post) {
+    document.getElementById("titleInput").value = post.title;
+    document.getElementById("bodyInput").value = post.body;
+    document.getElementById("postId").value = post.id;
+
+    document.getElementById("formTitle").innerText = "Edit Post";
+    document.getElementById("submitBtn").innerText = "Update Post";
+    document.getElementById("cancelBtn").classList.remove("hidden");
+  },
+
+  resetForm() {
+    document.getElementById("postForm").reset();
+    document.getElementById("postId").value = "";
+
+    document.getElementById("formTitle").innerText = "Add New Post";
+    document.getElementById("submitBtn").innerText = "Add Post";
+    document.getElementById("cancelBtn").classList.add("hidden");
   }
+};
 
-  return {
-    init: fetchPosts
-  };
 
-})();
+// PART 4: APP (MAIN LOGIC)
+const App = {
+  async init() {
+    try {
+      const posts = await API.getPosts();
 
+      // STEP 1: UPDATE STATE
+      State.setPosts(posts);
+
+      // STEP 2: RENDER UI
+      UI.renderPosts(State.getPosts());
+    } catch (err) {
+      document.getElementById("errorMessage").classList.remove("hidden");
+    }
+  },
+
+  async handleSubmit(e) {
+    e.preventDefault();
+
+    const title = document.getElementById("titleInput").value;
+    const body = document.getElementById("bodyInput").value;
+
+    const { isEditing, editingId } = State.getEditing();
+
+    if (isEditing) {
+      // UPDATE
+      const updatedPost = { id: editingId, title, body };
+
+      await API.updatePost(updatedPost);
+
+      // STATE UPDATE
+      State.updatePost(updatedPost);
+
+      State.cancelEditing();
+    } else {
+      // CREATE
+      const newPost = {
+        id: Date.now(),
+        title,
+        body
+      };
+
+      await API.createPost(newPost);
+
+      // STATE UPDATE
+      State.addPost(newPost);
+    }
+
+    UI.resetForm();
+    UI.renderPosts(State.getPosts());
+  },
+
+  handleEdit(id) {
+    const post = State.getPosts().find(p => p.id === id);
+
+    State.setEditing(id);
+    UI.fillForm(post);
+  },
+
+  async handleDelete(id) {
+    await API.deletePost(id);
+
+    // STATE UPDATE
+    State.deletePost(id);
+
+    UI.renderPosts(State.getPosts());
+  },
+
+  handleSearch(e) {
+    const term = e.target.value.toLowerCase();
+
+    const filtered = State.getPosts().filter(post =>
+      post.title.toLowerCase().includes(term)
+    );
+
+    UI.renderPosts(filtered);
+  },
+
+  handleCancel() {
+    State.cancelEditing();
+    UI.resetForm();
+  }
+};
+
+
+// EVENT LISTENERS
+document.getElementById("postForm")
+  .addEventListener("submit", App.handleSubmit);
+
+document.getElementById("searchInput")
+  .addEventListener("input", App.handleSearch);
+
+document.getElementById("cancelBtn")
+  .addEventListener("click", App.handleCancel);
+
+// START APP
 App.init();
