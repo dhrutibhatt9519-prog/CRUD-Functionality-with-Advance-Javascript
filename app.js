@@ -9,18 +9,22 @@ const State = (function () {
 
     setPosts: (newPosts) => {
       posts = newPosts;
+      localStorage.setItem("posts", JSON.stringify(posts)); 
     },
 
     addPost: (post) => {
       posts = [post, ...posts];
+      localStorage.setItem("posts", JSON.stringify(posts)); 
     },
 
     updatePost: (updatedPost) => {
       posts = posts.map(p => p.id === updatedPost.id ? updatedPost : p);
+      localStorage.setItem("posts", JSON.stringify(posts)); 
     },
 
     deletePost: (id) => {
       posts = posts.filter(p => p.id !== id);
+      localStorage.setItem("posts", JSON.stringify(posts)); 
     },
 
     setEditing: (id) => {
@@ -39,7 +43,6 @@ const State = (function () {
     })
   };
 })();
-
 
 // PART 2: API (FAKE API)
 const API = {
@@ -65,7 +68,12 @@ const API = {
       body: JSON.stringify(post),
       headers: { "Content-type": "application/json" }
     });
-    return res.json();
+
+    try {
+      return await res.json();
+    } catch {
+      return post; // fallback for fake API
+    }
   },
 
   async deletePost(id) {
@@ -74,7 +82,6 @@ const API = {
     });
   }
 };
-
 
 // PART 3: UI
 const UI = {
@@ -111,20 +118,27 @@ const UI = {
   }
 };
 
-
 // PART 4: APP (MAIN LOGIC)
 const App = {
   async init() {
+    const loading = document.getElementById("loadingMessage");
+
     try {
-      const posts = await API.getPosts();
+      const localPosts = localStorage.getItem("posts");
 
-      // STEP 1: UPDATE STATE
-      State.setPosts(posts);
+      if (localPosts) {
+        State.setPosts(JSON.parse(localPosts));
+      } else {
+        const posts = await API.getPosts();
+        State.setPosts(posts);
+      }
 
-      // STEP 2: RENDER UI
       UI.renderPosts(State.getPosts());
+
     } catch (err) {
       document.getElementById("errorMessage").classList.remove("hidden");
+    } finally {
+      loading.style.display = "none";
     }
   },
 
@@ -137,17 +151,13 @@ const App = {
     const { isEditing, editingId } = State.getEditing();
 
     if (isEditing) {
-      // UPDATE
       const updatedPost = { id: editingId, title, body };
 
       await API.updatePost(updatedPost);
 
-      // STATE UPDATE
-      State.updatePost(updatedPost);
-
+      State.updatePost(updatedPost); 
       State.cancelEditing();
     } else {
-      // CREATE
       const newPost = {
         id: Date.now(),
         title,
@@ -156,8 +166,7 @@ const App = {
 
       await API.createPost(newPost);
 
-      // STATE UPDATE
-      State.addPost(newPost);
+      State.addPost(newPost); 
     }
 
     UI.resetForm();
@@ -174,9 +183,7 @@ const App = {
   async handleDelete(id) {
     await API.deletePost(id);
 
-    // STATE UPDATE
     State.deletePost(id);
-
     UI.renderPosts(State.getPosts());
   },
 
@@ -195,7 +202,6 @@ const App = {
     UI.resetForm();
   }
 };
-
 
 // EVENT LISTENERS
 document.getElementById("postForm")
